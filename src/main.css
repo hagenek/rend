@@ -22,10 +22,50 @@ canvas {
   justify-content: center;
 }
 
+.position-button {
+  position: relative;
+  overflow: visible;
+  /* This ensures the tooltip is visible outside the button */
+  padding: 10px;
+  font-size: large;
+  margin-bottom: 25px;
+  /* This ensures buttons don't overlap with tooltips */
+  border: 1px solid #ccc;
+  background-color: #f9f9f9;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.position-button:hover {
+  background-color: #e6e6e6;
+}
+
+.position-button-tooltip {
+  display: none;
+  position: absolute;
+  top: -35px;
+  /* This positions the tooltip above the button */
+  left: 50%;
+  transform: translateX(-50%);
+  /* Centers the tooltip above the button */
+  padding: 5px 10px;
+  background-color: #333;
+  color: #fff;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+}
+
+.position-button:hover .position-button-tooltip {
+  display: block;
+}
+
 .hud .buttons button {
   margin: 0 8px;
   border: 0;
-  padding: 4px 8px;
+  background-color: whitesmoke;
+  color: gray;
+  padding: 9px 21px;
   cursor: pointer;
   pointer-events: all;
 }
@@ -49,16 +89,8 @@ canvas {
   flex-direction: column;
 }
 
-#properties_panel,
 #search_panel {
   background-color: rgba(255, 255, 255, 0.7);
-}
-
-#properties_panel {
-  height: 100%;
-  width: 100%;
-  overflow: auto;
-  margin-bottom: 0;
 }
 
 #search_panel {

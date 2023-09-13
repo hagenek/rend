@@ -1,4 +1,5 @@
 import {
+  API,
   createAPI,
   HierarcicalObjectReference,
   Scene,
@@ -10,128 +11,88 @@ import { vec3, quat } from 'gl-matrix';
 import "../index.css";
 import "./main.css";
 import { initSearch } from "./search";
-import { initProperties } from "./properties";
 
-function addClickHandlers(view: View) {
-  const storedCameraStates: Array<{ position: number[], rotation: number[] }> = [];
-
-  const positionButtons = [
-    document.getElementById("position-one"),
-    document.getElementById("position-two"),
-    document.getElementById("position-three")
-  ];
-
-  positionButtons.forEach((button, index) => {
-    if (!button) return;
-
-    button.addEventListener("click", async (event: MouseEvent) => {
-      if (event.shiftKey && event.button === 0) {
-        storedCameraStates[index] = {
-          position: [...view.camera.position],
-          rotation: [...view.camera.rotation]
-        };
-        console.log(`Saved position for button ${index + 1}`);
-      } else if (event.button === 0) {
-        const storedState = storedCameraStates[index];
-        if (storedState) {
-          const moveToPosition = vec3.fromValues(...storedState.position);
-          const moveToRotation = quat.fromValues(...storedState.rotation);
-
-          view.camera.controller.moveTo(moveToPosition, moveToRotation);
-
-          console.log(`Moved to stored position for button ${index + 1}`);
-        } else {
-          console.log(`No stored position for button ${index + 1}`);
-        }
-      }
-    });
-  });
+interface StoredCameraState {
+  position: number[],
+  rotation: number[]
 }
 
+const storedCameraStates: StoredCameraState[] = [];
 
-const api = createAPI({
-  scriptBaseUrl: window.location.origin + "/novorender/webgl-api/",
-});
-const canvas = document.getElementById("3d_canvas") as HTMLCanvasElement;
-const access_token = localStorage.getItem("access_token");
-// Initialize the data API with the Novorender data server service
-const dataApi = createDataAPI({
-  serviceUrl: "https://data.novorender.com/api",
-  authHeader: async () => ({
-    header: "Authorization",
-    value: access_token ?? "",
-  }),
-});
-
-function initHighlighter(view: View, scene: Scene): (ids: number[]) => void {
-  // Init highlights with green as highlight color
-  view.settings.objectHighlights = [
-    api.createHighlight({ kind: "neutral" }),
-    api.createHighlight({ kind: "color", color: [0, 0, 0, 0] }),
-  ];
-
-  return (ids) => {
-    if (!ids.length) {
-      scene.objectHighlighter.objectHighlightIndices.fill(0);
-      scene.objectHighlighter.commit();
-      return;
-    }
-    // Reset highlight of all objects
-    scene.objectHighlighter.objectHighlightIndices.fill(1);
-    // Set new highlight on selected objects
-    ids.forEach(
-      (id) => (scene.objectHighlighter.objectHighlightIndices[id] = 0)
-    );
-    scene.objectHighlighter.commit();
-  };
+interface ButtonData {
+  buttonIndex: number,
+  event: MouseEvent
 }
 
-
-
-async function main(): Promise<void> {
-  try {
-    const view = await initView();
-    addClickHandlers(view);
-    const scene = view.scene!;
-    run(view, canvas);
-
-    // Show HUD and init the extra functionality
-    document.querySelector(".hud")?.classList.remove("hidden");
-    const displayProperties = initProperties(scene);
-    const highlight = initHighlighter(view, scene);
-
-    initSearch(scene, (result: HierarcicalObjectReference[]) => {
-      const ids = result.map((obj) => obj.id);
-      highlight(ids);
-      displayProperties(ids.at(-1));
-    });
-
-  } catch (e) {
-    // Handle errors however you like
-    // Here we just redirect to login page if user is not autorized to acces scene
-    const isNotAuthorized =
-      e &&
-      typeof e === "object" &&
-      "error" in e &&
-      typeof e.error === "string" &&
-      e.error.toLowerCase() === "not authorized";
-
-    if (isNotAuthorized) {
-      localStorage.removeItem("access_token");
-      window.location.replace("/login/index.html");
-    } else {
-      console.warn(e);
-    }
+function attachEventToButton(view: View, storedCameraStates: StoredCameraState[], { buttonIndex, event }: ButtonData) {
+  const storedState = storedCameraStates[buttonIndex];
+  if (event.shiftKey && event.button === 0) {
+    storeCameraState(view, storedCameraStates, buttonIndex);
+  } else if (event.button === 0) {
+    storedState && moveCameraToStoredPosition(view, storedState)
   }
 }
 
-// Load scene and initialize the 3D view
-async function initView() {
-  // Load scene metadata
+function storeCameraState(view: View, storedCameraStates: StoredCameraState[], index: number) {
+  storedCameraStates[index] = { position: [...view.camera.position], rotation: [...view.camera.rotation] }
+}
+
+function moveCameraToStoredPosition(view: View, storedState: StoredCameraState) {
+  const { position, rotation } = storedState;
+  const moveToPosition = vec3.fromValues(...(position as [number, number, number]));
+  const moveToRotation = quat.fromValues(...(rotation as [number, number, number, number]));
+
+  view.camera.controller.moveTo(moveToPosition, moveToRotation);
+}
+
+function addClickHandlersToPositionButtons(view: View) {
+  const positionButtonsContainer = document.querySelector('#position-buttons');
+
+  if (!positionButtonsContainer) {
+    return;
+  }
+
+  const positionButtons = positionButtonsContainer.children as HTMLCollectionOf<HTMLButtonElement>;
+
+  Array.from(positionButtons).forEach((button, index) => {
+    button.addEventListener('click', (event: MouseEvent) =>
+      attachEventToButton(view, storedCameraStates, { buttonIndex: index, event }));
+  });
+}
+
+function setupAPI() {
+  return createAPI({
+    scriptBaseUrl: window.location.origin + "/novorender/webgl-api/",
+  });
+}
+
+function getAccessToken() {
+  return localStorage.getItem("access_token");
+}
+
+function initDataAPI(access_token: string | null) {
+  return createDataAPI({
+    serviceUrl: "https://data.novorender.com/api",
+    authHeader: async () => ({
+      header: "Authorization",
+      value: access_token ?? "",
+    }),
+  });
+}
+
+function applyViewSettings(view: View) {
+  view.applySettings({ quality: { resolution: { value: 1 } } });
+}
+
+function setViewCamera(view: View, api: any, cameraParams: any, canvas: HTMLCanvasElement) {
+  const camera = cameraParams ?? ({ kind: "flight" } as any);
+  view.camera.controller = api.createCameraController(camera, canvas);
+}
+
+async function initView(api: any, dataApi: any, canvas: HTMLCanvasElement) {
   const sceneData = await dataApi
-    // Condos scene ID, but can be changed to any scene ID
-    .loadScene("95a89d20dd084d9486e383e131242c4c")
-    .then((res) => {
+    .loadScene("95a89d20dd084d9486e383e131242c4c") // Condos scene ID, can be changed to any scene ID
+    .then((res: any) => {
       if ("error" in res) {
         throw res;
       } else {
@@ -139,29 +100,17 @@ async function initView() {
       }
     });
 
-  // Destructure relevant properties into variables
   const { url, db, settings, camera: cameraParams } = sceneData;
-
-  // Load scene
   const scene = await api.loadScene(url, db);
-
-  // Create a view with the scene's saved settings
   const view = await api.createView(settings, canvas);
 
-  // Set resolution scale to 1
-  view.applySettings({ quality: { resolution: { value: 1 } } });
-
-  // Create a camera controller with the saved parameters with turntable as fallback
-  const camera = cameraParams ?? ({ kind: "flight" } as any);
-  view.camera.controller = api.createCameraController(camera, canvas);
-
-  // Assign the scene to the view
+  applyViewSettings(view);
+  setViewCamera(view, api, cameraParams, canvas);
   view.scene = scene;
 
   return view;
 }
 
-// Run render loop
 async function run(view: View, canvas: HTMLCanvasElement): Promise<void> {
   // Handle canvas resizes
   const resizeObserver = new ResizeObserver((entries) => {
@@ -195,4 +144,46 @@ async function run(view: View, canvas: HTMLCanvasElement): Promise<void> {
   }
 }
 
-main();
+function initHighlighter(view: View, api: API, scene: Scene): (ids: number[]) => void {
+  view.settings.objectHighlights = [
+    api.createHighlight({ kind: "neutral" }),
+    api.createHighlight({ kind: "color", color: [0, 0, 0, 0] }),
+  ];
+
+  return (ids) => {
+    if (!ids.length) {
+      scene.objectHighlighter.objectHighlightIndices.fill(0);
+      scene.objectHighlighter.commit();
+      return;
+    }
+    scene.objectHighlighter.objectHighlightIndices.fill(1);
+    ids.forEach(
+      (id) => (scene.objectHighlighter.objectHighlightIndices[id] = 0)
+    );
+    scene.objectHighlighter.commit();
+  };
+}
+
+async function main(): Promise<void> {
+  try {
+    const api = setupAPI();
+    const canvas = document.getElementById("3d_canvas") as HTMLCanvasElement;
+    const access_token = getAccessToken();
+    const dataApi = initDataAPI(access_token);
+    const view = await initView(api, dataApi, canvas);
+    const highlight = initHighlighter(view, api, view.scene!);
+
+    addClickHandlersToPositionButtons(view);
+    run(view, canvas);
+
+    document.querySelector(".hud")?.classList.remove("hidden");
+    initSearch(view.scene!, (result: HierarcicalObjectReference[]) => {
+      const ids = result.map((obj) => obj.id);
+      highlight(ids);
+    });
+  } catch (e: any) {
+    console.error(e.message);
+  }
+}
+
+main()
