@@ -1,0 +1,21 @@
+{
+  "name": "vite",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "dependencies": "node ./scripts/copy-novorender-workers.js"
+  },
+  "devDependencies": {
+    "typescript": "^4.9.3",
+    "vite": "^4.0.0"
+  },
+  "dependencies": {
+    "@novorender/data-js-api": "^0.2.21",
+    "@novorender/webgl-api": "^0.4.11",
+    "gl-matrix": "^3.4.3"
+  }
+}

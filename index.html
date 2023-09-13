@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite + TS</title>
+  </head>
+  <body>
+    <canvas id="3d_canvas"></canvas>
+    <div class="hud hidden">
+      <div class="panels">
+        <form id="search_panel">
+          <label for="search_query">Search</label>
+          <input id="search_query" />
+          <button>Search</button>
+        </form>
+        <pre id="properties_panel"></pre>
+      </div>
+      <div class="buttons">
+        <button id="properties_button" class="active">Properties</button>
+        <button id="search_button" class="active">Search</button>
+        <button id="fly_to_button" class="active">Fly to results</button>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

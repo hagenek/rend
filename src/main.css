@@ -1,0 +1,80 @@
+canvas {
+  outline: 0;
+  touch-action: none;
+  height: 100vh;
+  width: 100vw;
+  cursor: crosshair;
+}
+
+.hud {
+  position: absolute;
+  top: 0;
+  pointer-events: none;
+  height: 100vh;
+  width: 100vw;
+}
+
+.hud .buttons {
+  position: absolute;
+  bottom: 24px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.hud .buttons button {
+  margin: 0 8px;
+  border: 0;
+  padding: 4px 8px;
+  cursor: pointer;
+  pointer-events: all;
+}
+
+.hud .buttons .active {
+  background-color: palevioletred;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.panels {
+  margin: 0;
+  pointer-events: all;
+  width: 500px;
+  height: 500px;
+  resize: both;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+#properties_panel,
+#search_panel {
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+#properties_panel {
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+  margin-bottom: 0;
+}
+
+#search_panel {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+#search_panel label {
+  margin-bottom: 4px;
+}
+
+#search_panel input {
+  margin-bottom: 8px;
+}
+
+#search_panel button {
+  cursor: pointer;
+}
